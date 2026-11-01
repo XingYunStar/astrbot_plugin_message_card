@@ -9,14 +9,13 @@ raster limits.
 from __future__ import annotations
 
 import asyncio
-import logging
 import math
 import os
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
-logger = logging.getLogger("astrbot")
+from astrbot.api import logger
 
 
 class RenderError(RuntimeError):

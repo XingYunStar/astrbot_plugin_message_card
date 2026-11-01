@@ -15,7 +15,6 @@ import binascii
 import io
 import ipaddress
 import json
-import logging
 import os
 import re
 import socket
@@ -27,9 +26,8 @@ from pathlib import Path
 from typing import Any
 
 import aiohttp
+from astrbot.api import logger
 from PIL import Image, UnidentifiedImageError
-
-logger = logging.getLogger("astrbot")
 
 _DATA_URI = re.compile(
     r"^data:(image/(?:png|jpe?g|gif|webp|bmp));base64,(.*)$",
