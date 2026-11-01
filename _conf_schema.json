@@ -1,0 +1,560 @@
+{
+  "enabled": {
+    "description": "启用消息卡片",
+    "type": "bool",
+    "default": true,
+    "hint": "关闭后不自动转换，/render 指令仍可用于手动测试。"
+  },
+  "trigger": {
+    "description": "自动触发",
+    "type": "object",
+    "hint": "控制哪些消息会被自动转换为卡片；/render 指令不受此处限制。",
+    "items": {
+      "mode": {
+        "description": "触发范围",
+        "type": "string",
+        "options": [
+          "llm",
+          "all",
+          "command"
+        ],
+        "default": "llm",
+        "hint": "llm：仅 LLM 回复；all：所有发送结果（含命令回复）；command：只保留 /render 手动渲染。"
+      },
+      "min_chars": {
+        "description": "最短自动渲染字数",
+        "type": "int",
+        "default": 24,
+        "slider": {
+          "min": 0,
+          "max": 500,
+          "step": 1
+        },
+        "hint": "纯文本短于该值时不自动转图；富文本（标题/表格/代码/公式/图片）不受此限制。设为 0 表示不按字数过滤。"
+      },
+      "render_when_rich": {
+        "description": "富文本优先渲染",
+        "type": "bool",
+        "default": true,
+        "hint": "即使字数不足，只要检测到 Markdown 结构、LaTeX、HTML 或图片，也自动渲染。"
+      },
+      "skip_streaming": {
+        "description": "跳过流式输出",
+        "type": "bool",
+        "default": true,
+        "hint": "流式平台建议保持开启：部分适配器在最终结果到达前已发送文本，转图可能重复。"
+      },
+      "render_images": {
+        "description": "渲染消息中的图片",
+        "type": "bool",
+        "default": true,
+        "hint": "把消息链里的图片（包括 meme_manager 在 on_decorating_result 中加入的表情包）嵌入卡片。"
+      },
+      "render_image_only": {
+        "description": "纯图片消息也转卡片",
+        "type": "bool",
+        "default": false,
+        "hint": "默认不对只有表情包/图片、没有文字的消息再套卡片，避免把表情包变成大图。"
+      },
+      "include_meme_manager_pending": {
+        "description": "并入 meme_manager 待发表情",
+        "type": "bool",
+        "default": true,
+        "hint": "meme_manager 在非混合模式下会把表情放到发送后的单独消息；开启后，本插件会把 event 上的待发表情一并压入卡片，并阻止重复发送。仅在检测到 meme_manager 时生效。"
+      },
+      "skip_platforms": {
+        "description": "跳过的平台",
+        "type": "string",
+        "default": "",
+        "hint": "逗号分隔的适配器名，例如 aiocqhttp,telegram；留空表示不跳过。"
+      }
+    }
+  },
+  "theme": {
+    "description": "昼夜主题",
+    "type": "object",
+    "hint": "按 IANA 时区与本地时间段自动选择日间/夜间主题。",
+    "items": {
+      "mode": {
+        "description": "主题模式",
+        "type": "string",
+        "options": [
+          "auto",
+          "light",
+          "dark"
+        ],
+        "default": "auto",
+        "hint": "auto 依据下面的时区与日间区间自动切换；light/dark 强制固定主题。"
+      },
+      "timezone": {
+        "description": "时区",
+        "type": "string",
+        "default": "Asia/Shanghai",
+        "hint": "IANA 时区名，例如 Asia/Shanghai、Asia/Tokyo、Europe/London。无效值会回退到 Asia/Shanghai。"
+      },
+      "day_start": {
+        "description": "日间开始",
+        "type": "string",
+        "default": "06:30",
+        "hint": "HH:MM 格式。日间区间包含开始时刻；区间可跨午夜，例如 20:00–06:00。"
+      },
+      "day_end": {
+        "description": "日间结束",
+        "type": "string",
+        "default": "18:30",
+        "hint": "HH:MM 格式，不包含结束时刻。日间之外自动使用夜间主题。"
+      },
+      "accent_light": {
+        "description": "日间强调色",
+        "type": "string",
+        "default": "",
+        "hint": "十六进制或 rgb()/rgba()，留空使用内置青蓝色。"
+      },
+      "accent_dark": {
+        "description": "夜间强调色",
+        "type": "string",
+        "default": "",
+        "hint": "十六进制或 rgb()/rgba()，留空使用内置荧光青色。"
+      }
+    }
+  },
+  "appearance": {
+    "description": "卡片外观",
+    "type": "object",
+    "items": {
+      "width": {
+        "description": "卡片宽度（CSS px）",
+        "type": "int",
+        "default": 920,
+        "slider": {
+          "min": 520,
+          "max": 1400,
+          "step": 20
+        },
+        "hint": "实际输出像素 = 宽度 × 设备缩放。手机端 720–920 较清晰。"
+      },
+      "radius": {
+        "description": "圆角",
+        "type": "int",
+        "default": 28,
+        "slider": {
+          "min": 0,
+          "max": 48,
+          "step": 2
+        }
+      },
+      "font_size": {
+        "description": "正文字号（CSS px）",
+        "type": "float",
+        "default": 17,
+        "slider": {
+          "min": 12,
+          "max": 28,
+          "step": 0.5
+        }
+      },
+      "line_height": {
+        "description": "正文行高",
+        "type": "float",
+        "default": 1.78,
+        "slider": {
+          "min": 1.2,
+          "max": 2.4,
+          "step": 0.02
+        }
+      },
+      "eyebrow": {
+        "description": "页眉小标题",
+        "type": "string",
+        "default": "MESSAGE CARD",
+        "hint": "显示在页眉标题上方的小号英文/文字。"
+      },
+      "show_meta": {
+        "description": "显示发送者信息",
+        "type": "bool",
+        "default": true,
+        "hint": "在正文上方显示发送者头像字、昵称、平台与日期。"
+      },
+      "custom_css": {
+        "description": "自定义 CSS",
+        "type": "string",
+        "default": "",
+        "hint": "高级用法：追加到内置样式之后。避免使用 url()/position:fixed，截图环境不加载外部资源。"
+      }
+    }
+  },
+  "header": {
+    "description": "页眉图片",
+    "type": "object",
+    "hint": "页眉是卡片顶部的横向大图，适合横屏 API；加载失败会自动使用内置渐变装饰。",
+    "items": {
+      "enabled": {
+        "description": "启用页眉区域",
+        "type": "bool",
+        "default": true,
+        "hint": "关闭后不显示整个页眉；只想去掉图片可把 source 保持为 theme。"
+      },
+      "source": {
+        "description": "图片源",
+        "type": "string",
+        "options": [
+          "theme",
+          "local",
+          "url",
+          "api"
+        ],
+        "default": "theme",
+        "hint": "theme：内置渐变；local：本地文件；url：固定图片 URL；api：每次按接口获取（可随机），失败回退 theme。"
+      },
+      "path": {
+        "description": "本地图片路径",
+        "type": "string",
+        "default": "",
+        "hint": "source=local 时生效。绝对路径，或相对插件目录/data 目录的路径。支持 {date} 等占位符。"
+      },
+      "url": {
+        "description": "固定图片 URL",
+        "type": "string",
+        "default": "",
+        "hint": "source=url 时生效；支持 {date}、{time}、{timezone} 等占位符。"
+      },
+      "api_url": {
+        "description": "横屏图片 API",
+        "type": "string",
+        "default": "http://127.0.0.1:8888/image/firefly_cg/?mode=pc",
+        "hint": "source=api 时生效。默认是宿主机的 Firefly CG 横屏接口；AstrBot 在 Docker 内时 127.0.0.1 不通，可开启下方的容器回退。"
+      },
+      "api_json_path": {
+        "description": "JSON 图片字段路径",
+        "type": "string",
+        "default": "",
+        "hint": "如果 API 返回 JSON，可填写如 data.url、result.images[0]；留空自动寻找第一个图片 URL。API 直接返回图片时忽略。"
+      },
+      "host_fallback": {
+        "description": "容器访问宿主机回退",
+        "type": "bool",
+        "default": true,
+        "hint": "当 API 主机是 127.0.0.1/localhost 时，失败后依次尝试 host.docker.internal、Docker 网关、172.17.0.1。宿主机直接运行不受影响。"
+      },
+      "cache_seconds": {
+        "description": "API 图片缓存秒数",
+        "type": "int",
+        "default": 45,
+        "slider": {
+          "min": 0,
+          "max": 600,
+          "step": 5
+        },
+        "hint": "0 表示每条消息都重新请求；随机图 API 可设为 0，固定图可设大一些。"
+      },
+      "height": {
+        "description": "页眉高度（CSS px）",
+        "type": "int",
+        "default": 238,
+        "slider": {
+          "min": 110,
+          "max": 460,
+          "step": 2
+        }
+      },
+      "fit": {
+        "description": "图片填充方式",
+        "type": "string",
+        "options": [
+          "cover",
+          "contain"
+        ],
+        "default": "cover",
+        "hint": "cover 裁切铺满（适合横屏图）；contain 完整显示（可能留边）。"
+      },
+      "position": {
+        "description": "裁剪焦点",
+        "type": "string",
+        "default": "center",
+        "hint": "center/top/bottom/left/right 或 30% 40%。"
+      },
+      "title": {
+        "description": "页眉标题",
+        "type": "string",
+        "default": "消息卡片",
+        "hint": "支持 {date}、{time}、{sender}、{platform}、{timezone} 等占位符；留空使用默认标题。"
+      },
+      "subtitle": {
+        "description": "页眉副标题",
+        "type": "string",
+        "default": "",
+        "hint": "留空自动显示日期 · 时间 · 时区。"
+      },
+      "show_text": {
+        "description": "显示页眉文字",
+        "type": "bool",
+        "default": true,
+        "hint": "关闭后只显示页眉图片/渐变。"
+      }
+    }
+  },
+  "footer": {
+    "description": "页脚图片",
+    "type": "object",
+    "hint": "页脚同样支持本地图片、固定 URL 或 API；可与页眉使用不同接口。",
+    "items": {
+      "enabled": {
+        "description": "启用页脚区域",
+        "type": "bool",
+        "default": true,
+        "hint": "关闭后不显示整个页脚；只想去掉图片可把 source 保持为 theme。"
+      },
+      "source": {
+        "description": "图片源",
+        "type": "string",
+        "options": [
+          "theme",
+          "local",
+          "url",
+          "api"
+        ],
+        "default": "theme",
+        "hint": "theme：纯色页脚；其余同页眉。"
+      },
+      "path": {
+        "description": "本地图片路径",
+        "type": "string",
+        "default": ""
+      },
+      "url": {
+        "description": "固定图片 URL",
+        "type": "string",
+        "default": ""
+      },
+      "api_url": {
+        "description": "页脚图片 API",
+        "type": "string",
+        "default": "",
+        "hint": "留空则页脚不请求 API；可填入与页眉相同的横屏接口。"
+      },
+      "api_json_path": {
+        "description": "JSON 图片字段路径",
+        "type": "string",
+        "default": ""
+      },
+      "host_fallback": {
+        "description": "容器访问宿主机回退",
+        "type": "bool",
+        "default": true
+      },
+      "cache_seconds": {
+        "description": "API 图片缓存秒数",
+        "type": "int",
+        "default": 45,
+        "slider": {
+          "min": 0,
+          "max": 600,
+          "step": 5
+        }
+      },
+      "height": {
+        "description": "页脚高度（CSS px）",
+        "type": "int",
+        "default": 148,
+        "slider": {
+          "min": 72,
+          "max": 320,
+          "step": 2
+        }
+      },
+      "fit": {
+        "description": "图片填充方式",
+        "type": "string",
+        "options": [
+          "cover",
+          "contain"
+        ],
+        "default": "cover"
+      },
+      "position": {
+        "description": "裁剪焦点",
+        "type": "string",
+        "default": "center"
+      },
+      "text": {
+        "description": "页脚文字",
+        "type": "string",
+        "default": "AstrBot · {date} {time}",
+        "hint": "支持 {date}、{time}、{sender}、{platform}、{timezone}、{theme} 等占位符。"
+      },
+      "show_text": {
+        "description": "显示页脚文字",
+        "type": "bool",
+        "default": true
+      }
+    }
+  },
+  "render": {
+    "description": "渲染与浏览器",
+    "type": "object",
+    "items": {
+      "format": {
+        "description": "输出格式",
+        "type": "string",
+        "options": [
+          "png",
+          "jpeg"
+        ],
+        "default": "png",
+        "hint": "PNG 支持透明圆角；JPEG 体积更小。"
+      },
+      "quality": {
+        "description": "JPEG 质量",
+        "type": "int",
+        "default": 92,
+        "slider": {
+          "min": 40,
+          "max": 100,
+          "step": 1
+        }
+      },
+      "device_scale_factor": {
+        "description": "设备缩放（清晰度）",
+        "type": "float",
+        "default": 2.0,
+        "slider": {
+          "min": 1.0,
+          "max": 3.0,
+          "step": 0.5
+        },
+        "hint": "2.0 即 2 倍分辨率；越大越清晰、体积越大。"
+      },
+      "timeout": {
+        "description": "单次渲染超时（秒）",
+        "type": "float",
+        "default": 45,
+        "slider": {
+          "min": 8,
+          "max": 180,
+          "step": 1
+        }
+      },
+      "max_slice_height": {
+        "description": "长图切片高度（CSS px）",
+        "type": "int",
+        "default": 7000,
+        "slider": {
+          "min": 1200,
+          "max": 15000,
+          "step": 500
+        },
+        "hint": "超过该高度会自动切成多张图片，避免超过 Chromium 位图上限。设为 2 倍缩放时实际像素为 14000。"
+      },
+      "browser_path": {
+        "description": "Chromium 路径",
+        "type": "string",
+        "default": "",
+        "hint": "留空自动探测 /usr/bin/chromium、google-chrome，或使用 Playwright 自带浏览器。Docker 可填 /usr/bin/chromium。"
+      },
+      "max_concurrent": {
+        "description": "最大并发生成数",
+        "type": "int",
+        "default": 2,
+        "slider": {
+          "min": 1,
+          "max": 6,
+          "step": 1
+        },
+        "hint": "同时渲染的卡片数量；CPU 较弱的机器建议 1–2。"
+      },
+      "keep_renders": {
+        "description": "保留最近图片数",
+        "type": "int",
+        "default": 120,
+        "slider": {
+          "min": 10,
+          "max": 2000,
+          "step": 10
+        },
+        "hint": "生成文件存放在 data/plugin_data/astrbot_plugin_message_card/renders，定期清理旧文件。"
+      }
+    }
+  },
+  "content": {
+    "description": "内容与安全",
+    "type": "object",
+    "items": {
+      "input_mode": {
+        "description": "输入格式",
+        "type": "string",
+        "options": [
+          "auto",
+          "markdown",
+          "html"
+        ],
+        "default": "auto",
+        "hint": "auto 自动识别 HTML 片段，其余按 Markdown 渲染；LaTeX 在两种模式下都会识别。"
+      },
+      "allow_inline_style": {
+        "description": "允许 HTML 内联样式",
+        "type": "bool",
+        "default": true,
+        "hint": "只放行颜色、间距、字号等安全 CSS；背景图、position、脚本、style 标签始终被移除。"
+      },
+      "allow_remote_images": {
+        "description": "允许正文远程图片",
+        "type": "bool",
+        "default": true,
+        "hint": "Markdown/HTML 里的 http(s) 图片会被下载并转为 data URI；默认禁止访问内网地址。"
+      },
+      "allow_private_network_images": {
+        "description": "允许正文访问内网图片",
+        "type": "bool",
+        "default": false,
+        "hint": "高风险：开启后消息内容可请求 127.0.0.1、局域网服务。仅在你完全信任消息来源时开启。"
+      },
+      "allow_local_images": {
+        "description": "允许正文引用本地文件",
+        "type": "bool",
+        "default": false,
+        "hint": "高风险：开启后 Markdown/HTML 可通过本地路径读取图片。消息链中的图片不受此限制。"
+      },
+      "max_remote_images": {
+        "description": "正文远程图片上限",
+        "type": "int",
+        "default": 8,
+        "slider": {
+          "min": 0,
+          "max": 30,
+          "step": 1
+        }
+      },
+      "math": {
+        "description": "启用 LaTeX 公式",
+        "type": "bool",
+        "default": true,
+        "hint": "把 $...$、$$...$$、\\(...\\)、\\[...\\] 转为原生 MathML，不依赖外部 MathJax/CDN。"
+      }
+    }
+  },
+  "compat": {
+    "description": "与 AstrBot 内置功能共存",
+    "type": "object",
+    "hint": "插件在 on_decorating_result 阶段先执行，默认会把文本替换为图片；这里可以按需保留核心的分段回复、TTS 和转发消息行为。",
+    "items": {
+      "preserve_segmented_reply": {
+        "description": "保留分段回复",
+        "type": "bool",
+        "default": false,
+        "hint": "当 AstrBot 的分段回复实际会拆分本条消息时，本插件跳过转图，把原消息交给核心分段。若消息长度超过分段阈值、或分段结果为 1 段，仍会正常转图。"
+      },
+      "preserve_tts": {
+        "description": "保留 TTS（图片 + 语音）",
+        "type": "bool",
+        "default": false,
+        "hint": "转图成功后按 AstrBot 的 TTS 配置生成语音，并把语音附件追加到图片消息后；不会重复发送文字。TTS 关闭、会话关闭、概率未命中或没有 Provider 时不生成语音。"
+      },
+      "preserve_forward_threshold": {
+        "description": "保留转发消息字数阈值",
+        "type": "bool",
+        "default": false,
+        "hint": "仅 aiocqhttp：当原文 Plain 字符总数超过 platform_settings.forward_threshold 时，本插件跳过转图，让核心把消息包成合并转发。低于阈值时仍正常转图。"
+      }
+    }
+  }
+}

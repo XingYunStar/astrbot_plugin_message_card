@@ -1,0 +1,18 @@
+name: astrbot_plugin_message_card
+display_name: 消息卡片渲染
+short_desc: 把消息渲染成带昼夜主题、页眉页脚与 LaTeX 的卡片图片
+desc: >-
+  将 AstrBot 的 LLM 回复或指定内容渲染为图片卡片。支持 Markdown、HTML、LaTeX
+  （原生 MathML）、消息链图片与网络图片；按 IANA 时区和日间区间自动切换昼夜主题；
+  页眉和页脚可使用本地图片、固定 URL 或横屏图片 API，并对 Docker 访问宿主机做回退。
+  内置 HTML 白名单清洗、正文图片 SSRF 防护和无脚本 Chromium 截图。
+author: 星陨
+version: 1.0.0
+repo: https://github.com/XingYunStar/astrbot_plugin_message_card
+astrbot_version: ">=4.24,<5"
+tags:
+  - 文转图
+  - Markdown
+  - HTML
+  - LaTeX
+  - 主题
