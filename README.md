@@ -44,7 +44,7 @@
 - 🖼️ **消息图片进入卡片**：图片组件会转成 data URI 嵌入正文，统一缩放到固定长边 `content.image_size`（默认 380px）并保持原比例；meme_manager 通过 `on_decorating_result(priority=99999)` 加入的表情包会被本插件（priority=-100）接住。
 - 👤 **头像**：发送者区域优先显示 QQ 头像，获取失败回退昵称首字；页脚显示机器人头像和机器人昵称，获取失败回退机器人昵称首字。
 - 🏞️ **页眉/页脚图片**：`theme / local / url / api` 四种来源；支持 `cover/contain`、裁剪焦点、文字开关和独立高度。
-- 🌐 **横屏图片 API**：默认预置 `http://127.0.0.1:8888/image/firefly_cg/?mode=pc`；支持直接返回图片、返回 JSON URL、302 跳转；失败自动回退到主题装饰。
+- 🌐 **横屏图片 API**：可配置任意横屏接口，例如 `https://api.cnmiw.com/api.php?sort=CDNpc`；支持直接返回图片、返回 JSON URL、302 跳转；失败自动回退到主题装饰。
 - 🐳 **Docker 宿主机回退**：当 API 主机是 `127.0.0.1` 且容器内不通时，依次尝试 `host.docker.internal`、Docker 网关、`172.17.0.1`。
 - 🧷 **输出阶段接管**：只在合适的时候转换；默认仅处理 LLM 回复、跳过短纯文本和流式输出；命令输出/纯图片默认不动。
 - 🧩 **内置功能共存开关**：可选择保留 AstrBot 的分段回复、TTS、转发消息字数阈值，避免“先转图导致核心功能失效”。
@@ -95,11 +95,11 @@ python -m playwright install-deps chromium
    - `theme.timezone`：例如 `Asia/Shanghai`
    - `theme.day_start` / `theme.day_end`：例如 `06:30` / `18:30`
    - `trigger.min_chars`：短消息不转图，默认 24
-3. 想用自己的横屏图 API：把 `header.source` 改成 `api`，`header.api_url` 填：
+3. 想使用自己的横屏图 API：把 `header.source` 改成 `api`，`header.api_url` 填，例如：
    ```
-   http://127.0.0.1:8888/image/firefly_cg/?mode=pc
+   https://api.cnmiw.com/api.php?sort=CDNpc
    ```
-   如果 AstrBot 跑在 Docker 里，保留 `header.host_fallback: true`，或直接改成 `http://host.docker.internal:8888/...`。
+   如果 API 是宿主机本地服务，Docker 场景请按下方「Docker 与 127.0.0.1」处理。
 4. 发送一段较长的 Markdown/LaTeX 测试，或直接：
 
    ```text
@@ -150,7 +150,7 @@ python -m playwright install-deps chromium
 | `header.title` | `消息卡片` | 页眉大字标题，可完全自定义 |
 | `header.source` | `theme` | `theme` / `local` / `url` / `api` |
 | `header.height` | `280` | 页眉高度（CSS px） |
-| `header.api_url` | `http://127.0.0.1:8888/image/firefly_cg/?mode=pc` | 横屏图片 API |
+| `header.api_url` | 示例 `https://api.cnmiw.com/api.php?sort=CDNpc` | 横屏图片 API |
 | `header.host_fallback` | `true` | 容器访问宿主机的地址回退 |
 | `header.cache_seconds` | `45` | 0 = 每条消息重新取图；随机图可设 0 |
 | `footer.source` | `theme` | 页脚图片源，规则同页眉 |
@@ -217,7 +217,7 @@ python -m playwright install-deps chromium
 
 ```text
 header.source = api
-header.api_url = http://172.17.0.1:8890/image/firefly_cg/?mode=pc
+header.api_url = http://172.17.0.1:8890/<你的API路径>
 ```
 
 示例：
@@ -369,8 +369,8 @@ fc-cache -fv
 先确认 `header.source` 是 `api`，再在 **AstrBot 容器内** 执行：
 
 ```bash
-curl -I "http://127.0.0.1:8888/image/firefly_cg/?mode=pc"
-curl -I "http://host.docker.internal:8888/image/firefly_cg/?mode=pc"
+curl -I "http://127.0.0.1:8888/<你的API路径>"
+curl -I "http://host.docker.internal:8888/<你的API路径>"
 ```
 
 第二条通就用 `host.docker.internal`；都不通就用宿主机局域网 IP，并确认 API 监听 `0.0.0.0`、防火墙放行 8888。开启 `header.host_fallback` 也只是尝试，不是魔法。
