@@ -7,7 +7,7 @@ desc: >-
   页眉和页脚可使用本地图片、固定 URL 或横屏图片 API，并对 Docker 访问宿主机做回退。
   内置 HTML 白名单清洗、正文图片 SSRF 防护和无脚本 Chromium 截图。
 author: 星陨
-version: 1.0.0
+version: 1.0.1
 repo: https://github.com/XingYunStar/astrbot_plugin_message_card
 astrbot_version: ">=4.24,<5"
 tags:
