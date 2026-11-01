@@ -304,6 +304,28 @@ class CardRenderer:
                     }));
                 }"""
             )
+            # Normalize every content image to a fixed long edge while
+            # preserving its aspect ratio.  CSS alone would either leave small
+            # memes tiny or crop large images to a square.  JS is disabled for
+            # page scripts, but this controlled evaluate runs via CDP.
+            await page.evaluate(
+                """() => {
+                    const root = document.documentElement;
+                    const raw = getComputedStyle(root).getPropertyValue('--image-box');
+                    const box = Number.parseFloat(raw) || 380;
+                    for (const img of document.querySelectorAll('.content img')) {
+                        const w = img.naturalWidth || 0;
+                        const h = img.naturalHeight || 0;
+                        if (!w || !h) continue;
+                        const scale = box / Math.max(w, h);
+                        img.style.width = Math.round(w * scale) + 'px';
+                        img.style.height = Math.round(h * scale) + 'px';
+                        img.style.maxWidth = '100%';
+                        img.style.maxHeight = 'none';
+                        img.style.objectFit = 'contain';
+                    }
+                }"""
+            )
             await page.wait_for_timeout(80)
             card = page.locator("#card")
             box = await card.bounding_box()

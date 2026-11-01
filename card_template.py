@@ -46,10 +46,10 @@ def _safe_css_text(value: str) -> str:
 
 @dataclass(slots=True)
 class CardOptions:
-    width: int = 920
-    radius: int = 28
-    font_size: float = 17.0
-    line_height: float = 1.78
+    width: int = 720
+    radius: int = 26
+    font_size: float = 28.0
+    line_height: float = 1.72
     font_family: str = (
         '"Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", '
         '"Microsoft YaHei", "WenQuanYi Zen Hei", "PingFang SC", '
@@ -60,8 +60,8 @@ class CardOptions:
         '"WenQuanYi Zen Hei Mono", monospace'
     )
     accent: str = ""
-    header_height: int = 238
-    footer_height: int = 148
+    header_height: int = 280
+    footer_height: int = 160
     header_fit: str = "cover"
     header_position: str = "center"
     footer_fit: str = "cover"
@@ -71,6 +71,7 @@ class CardOptions:
     show_meta: bool = True
     header_enabled: bool = True
     footer_enabled: bool = True
+    image_box: int = 380
     custom_css: str = ""
 
 
@@ -92,6 +93,9 @@ class CardData:
     timezone: str = ""
     eyebrow: str = "MESSAGE CARD"
     status_text: str = ""
+    avatar_image: str | None = None
+    bot_name: str = "机器人"
+    bot_avatar_image: str | None = None
 
 
 def build_card_html(
@@ -101,12 +105,12 @@ def build_card_html(
     pygments_css: str = "",
 ) -> str:
     palette = data.palette
-    width = _clamp_int(options.width, 920, 520, 1400)
-    radius = _clamp_int(options.radius, 28, 0, 48)
-    font_size = _clamp_float(options.font_size, 17.0, 12.0, 28.0)
-    line_height = _clamp_float(options.line_height, 1.78, 1.2, 2.4)
-    header_height = _clamp_int(options.header_height, 238, 110, 460)
-    footer_height = _clamp_int(options.footer_height, 148, 72, 320)
+    width = _clamp_int(options.width, 720, 520, 1400)
+    radius = _clamp_int(options.radius, 26, 0, 48)
+    font_size = _clamp_float(options.font_size, 28.0, 16.0, 36.0)
+    line_height = _clamp_float(options.line_height, 1.72, 1.2, 2.4)
+    header_height = _clamp_int(options.header_height, 280, 140, 520)
+    footer_height = _clamp_int(options.footer_height, 160, 90, 360)
     header_fit = "contain" if str(options.header_fit).lower() == "contain" else "cover"
     footer_fit = "contain" if str(options.footer_fit).lower() == "contain" else "cover"
     header_position = (
@@ -120,6 +124,7 @@ def build_card_html(
         else "center"
     )
     accent = safe_color(options.accent, palette.accent)
+    image_box = _clamp_int(options.image_box, 380, 180, 640)
     custom_css = _safe_css_text(options.custom_css)
 
     hero_image = ""
@@ -142,15 +147,33 @@ def build_card_html(
         initial = (data.sender or "A").strip()[:1].upper()
         if not initial or initial.isspace():
             initial = "A"
+        if data.avatar_image:
+            avatar_inner = (
+                f'<img class="avatar-img" src="{_escape(data.avatar_image)}" '
+                'alt="" loading="eager">'
+            )
+        else:
+            avatar_inner = _escape(initial)
         meta_html = f"""
       <div class="meta-row">
-        <div class="avatar" aria-hidden="true">{_escape(initial)}</div>
+        <div class="avatar" aria-hidden="true">{avatar_inner}</div>
         <div class="meta-main">
           <div class="meta-name">{_escape(data.sender or "AstrBot")}</div>
           <div class="meta-sub">{_escape(data.platform or "AstrBot")}{(" · " + _escape(data.time_text)) if data.time_text else ""}</div>
         </div>
         <div class="meta-date">{_escape(data.date_text)}</div>
       </div>"""
+
+    bot_name = data.bot_name or "机器人"
+    bot_initial = bot_name.strip()[:1].upper() or "B"
+    if data.bot_avatar_image:
+        brand_mark = (
+            f'<div class="brand-mark brand-avatar">'
+            f'<img class="brand-avatar-img" src="{_escape(data.bot_avatar_image)}" alt="" loading="eager">'
+            f'</div>'
+        )
+    else:
+        brand_mark = f'<div class="brand-mark">{_escape(bot_initial)}</div>'
 
     footer_html = ""
     footer_class = "footer"
@@ -164,10 +187,10 @@ def build_card_html(
         <div class="footer-scrim"></div>
         <div class="footer-inner footer-over-image">
           <div class="footer-brand">
-            <div class="brand-mark">MC</div>
+            {brand_mark}
             <div>
-              <div class="footer-title">{_escape(data.footer_text or "AstrBot · 消息卡片")}</div>
-              <div class="footer-hint">RENDERED BY ASTRBOT</div>
+              <div class="footer-title">{_escape(data.footer_text or bot_name)}</div>
+              <div class="footer-hint">MESSAGE CARD · {_escape(data.date_text)}</div>
             </div>
           </div>
           <div class="footer-side">
@@ -186,10 +209,10 @@ def build_card_html(
       <footer class="{footer_class}">
         <div class="footer-inner">
           <div class="footer-brand">
-            <div class="brand-mark">MC</div>
+            {brand_mark}
             <div>
-              <div class="footer-title">{_escape(data.footer_text or "AstrBot · 消息卡片")}</div>
-              <div class="footer-hint">RENDERED BY ASTRBOT</div>
+              <div class="footer-title">{_escape(data.footer_text or bot_name)}</div>
+              <div class="footer-hint">MESSAGE CARD · {_escape(data.date_text)}</div>
             </div>
           </div>
           <div class="footer-side">
@@ -221,6 +244,7 @@ def build_card_html(
   --hero-scrim: {palette.hero_scrim};
   --content-size: {font_size}px;
   --content-leading: {line_height};
+  --image-box: {image_box}px;
   --font: {options.font_family};
   --mono: {options.code_font_family};
 }}
@@ -302,9 +326,9 @@ body {{
 .hero-copy {{
   position: absolute;
   z-index: 2;
-  left: 42px;
-  right: 42px;
-  bottom: 30px;
+  left: 46px;
+  right: 46px;
+  bottom: 34px;
   color: #fff;
   text-shadow: 0 2px 22px rgba(0,0,0,.82), 0 1px 2px rgba(0,0,0,.55);
 }}
@@ -312,8 +336,8 @@ body {{
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 10px;
-  letter-spacing: .22em;
+  font-size: 13px;
+  letter-spacing: .18em;
   text-transform: uppercase;
   font-weight: 700;
   color: rgba(255,255,255,.80);
@@ -326,15 +350,15 @@ body {{
 }}
 .hero-title {{
   margin: 10px 0 8px;
-  font-size: 30px;
-  line-height: 1.16;
+  font-size: 42px;
+  line-height: 1.12;
   letter-spacing: -.02em;
   font-weight: 750;
 }}
 .hero-subtitle {{
-  font-size: 12px;
-  line-height: 1.5;
-  letter-spacing: .03em;
+  font-size: 18px;
+  line-height: 1.45;
+  letter-spacing: .02em;
   color: rgba(255,255,255,.75);
 }}
 .hero-badge {{
@@ -345,14 +369,14 @@ body {{
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 8px 13px;
+  padding: 9px 15px;
   border-radius: 999px;
   color: #fff;
   background: rgba(6, 15, 27, .44);
   border: 1px solid rgba(255,255,255,.24);
   backdrop-filter: blur(8px);
-  font-size: 10px;
-  letter-spacing: .15em;
+  font-size: 12px;
+  letter-spacing: .12em;
   text-transform: uppercase;
   font-weight: 650;
 }}
@@ -363,20 +387,20 @@ body {{
   background: var(--accent);
   box-shadow: 0 0 12px var(--accent);
 }}
-.card-body {{ padding: 28px 42px 36px; background: var(--card); }}
+.card-body {{ padding: 32px 46px 42px; background: var(--card); }}
 .meta-row {{
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding-bottom: 22px;
-  margin-bottom: 24px;
+  gap: 15px;
+  padding-bottom: 26px;
+  margin-bottom: 28px;
   border-bottom: 1px solid var(--line);
 }}
 .avatar {{
   flex: 0 0 auto;
-  width: 40px;
-  height: 40px;
-  border-radius: 13px;
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
   display: grid;
   place-items: center;
   color: var(--accent-ink);
@@ -384,13 +408,20 @@ body {{
     radial-gradient(120% 120% at 20% 10%, rgba(255,255,255,.75), transparent 50%),
     linear-gradient(140deg, var(--accent), rgba(255,255,255,.20));
   border: 1px solid rgba(255,255,255,.30);
-  font-size: 17px;
+  font-size: 22px;
   font-weight: 800;
   box-shadow: 0 6px 16px rgba(0,0,0,.12);
 }}
+.avatar-img {{
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: 15px;
+}}
 .meta-main {{ min-width: 0; flex: 1 1 auto; }}
 .meta-name {{
-  font-size: 14px;
+  font-size: 19px;
   font-weight: 750;
   letter-spacing: .01em;
   white-space: nowrap;
@@ -399,7 +430,7 @@ body {{
 }}
 .meta-sub {{
   margin-top: 3px;
-  font-size: 10.5px;
+  font-size: 13.5px;
   color: var(--faint);
   letter-spacing: .06em;
   text-transform: uppercase;
@@ -407,8 +438,8 @@ body {{
 .meta-date {{
   flex: 0 0 auto;
   font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: .08em;
+  font-size: 13px;
+  letter-spacing: .06em;
   color: var(--faint);
   padding: 6px 9px;
   border-radius: 7px;
@@ -433,8 +464,8 @@ body {{
   margin: 1.55em 0 .62em;
   scroll-margin-top: 10px;
 }}
-.content h1 {{ font-size: 1.72em; padding-bottom: .25em; border-bottom: 1px solid var(--line); }}
-.content h2 {{ font-size: 1.42em; padding-left: 14px; position: relative; }}
+.content h1 {{ font-size: 1.62em; padding-bottom: .25em; border-bottom: 1px solid var(--line); }}
+.content h2 {{ font-size: 1.34em; padding-left: 14px; position: relative; }}
 .content h2::before {{
   content: "";
   position: absolute;
@@ -442,8 +473,8 @@ body {{
   width: 4px; border-radius: 4px;
   background: linear-gradient(180deg, var(--accent), transparent);
 }}
-.content h3 {{ font-size: 1.18em; color: var(--accent); }}
-.content h4 {{ font-size: 1.04em; }}
+.content h3 {{ font-size: 1.14em; color: var(--accent); }}
+.content h4 {{ font-size: 1.03em; }}
 .content strong, .content b {{ font-weight: 760; color: var(--text); }}
 .content em {{ color: var(--muted); }}
 .content a {{ color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }}
@@ -531,15 +562,16 @@ body {{
 .content .message-image img {{ margin: 0 auto; }}
 .content img {{
   display: block;
-  max-width: 100%;
-  max-height: 760px;
+  max-width: var(--image-box);
+  max-height: var(--image-box);
   width: auto;
   height: auto;
-  margin: 1.2em auto;
+  margin: 1.25em auto;
   border-radius: 13px;
   border: 1px solid var(--line);
   background: var(--card-alt);
   object-fit: contain;
+  padding: 0;
 }}
 .content .image-fallback {{
   display: inline-block;
@@ -580,24 +612,32 @@ body {{
   position: relative;
   z-index: 2;
   min-height: {footer_height}px;
-  padding: 23px 42px;
+  padding: 26px 46px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
 }}
 .footer-brand {{ display: flex; align-items: center; gap: 12px; min-width: 0; }}
+.brand-avatar {{ padding: 0; overflow: hidden; }}
+.brand-avatar-img {{
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: 10px;
+}}
 .brand-mark {{
   flex: 0 0 auto;
-  width: 34px;
-  height: 34px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
   border-radius: 10px;
   color: var(--accent-ink);
   background: linear-gradient(145deg, var(--accent), rgba(255,255,255,.35));
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: -.04em;
   box-shadow: 0 7px 18px rgba(0,0,0,.14);
@@ -608,14 +648,14 @@ body {{
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text);
-  font-size: 12.5px;
+  font-size: 18px;
   font-weight: 700;
 }}
 .footer-hint {{
   margin-top: 4px;
   color: var(--faint);
-  font-size: 8.5px;
-  letter-spacing: .16em;
+  font-size: 11px;
+  letter-spacing: .13em;
   font-family: var(--mono);
 }}
 .footer-side {{
@@ -625,8 +665,8 @@ body {{
   flex: 0 0 auto;
   color: var(--faint);
   font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: .08em;
+  font-size: 12px;
+  letter-spacing: .06em;
   text-transform: uppercase;
 }}
 .theme-dot {{ width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 9px var(--accent); }}

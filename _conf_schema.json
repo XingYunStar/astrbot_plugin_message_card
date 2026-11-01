@@ -125,18 +125,18 @@
       "width": {
         "description": "卡片宽度（CSS px）",
         "type": "int",
-        "default": 920,
+        "default": 720,
         "slider": {
           "min": 520,
           "max": 1400,
           "step": 20
         },
-        "hint": "实际输出像素 = 宽度 × 设备缩放。手机端 720–920 较清晰。"
+        "hint": "手机端阅读建议 720；输出像素 = 宽度 × 设备缩放。"
       },
       "radius": {
         "description": "圆角",
         "type": "int",
-        "default": 28,
+        "default": 26,
         "slider": {
           "min": 0,
           "max": 48,
@@ -146,17 +146,17 @@
       "font_size": {
         "description": "正文字号（CSS px）",
         "type": "float",
-        "default": 17,
+        "default": 28,
         "slider": {
-          "min": 12,
-          "max": 28,
-          "step": 0.5
+          "min": 16,
+          "max": 36,
+          "step": 1
         }
       },
       "line_height": {
         "description": "正文行高",
         "type": "float",
-        "default": 1.78,
+        "default": 1.72,
         "slider": {
           "min": 1.2,
           "max": 2.4,
@@ -250,10 +250,10 @@
       "height": {
         "description": "页眉高度（CSS px）",
         "type": "int",
-        "default": 238,
+        "default": 280,
         "slider": {
-          "min": 110,
-          "max": 460,
+          "min": 140,
+          "max": 520,
           "step": 2
         }
       },
@@ -274,10 +274,10 @@
         "hint": "center/top/bottom/left/right 或 30% 40%。"
       },
       "title": {
-        "description": "页眉标题",
+        "description": "卡片标题（页眉大字）",
         "type": "string",
         "default": "消息卡片",
-        "hint": "支持 {date}、{time}、{sender}、{platform}、{timezone} 等占位符；留空使用默认标题。"
+        "hint": "默认“消息卡片”，可改成任意文字；支持 {bot_name}、{date}、{time}、{sender}、{platform}、{timezone} 等占位符。"
       },
       "subtitle": {
         "description": "页眉副标题",
@@ -355,10 +355,10 @@
       "height": {
         "description": "页脚高度（CSS px）",
         "type": "int",
-        "default": 148,
+        "default": 160,
         "slider": {
-          "min": 72,
-          "max": 320,
+          "min": 90,
+          "max": 360,
           "step": 2
         }
       },
@@ -379,8 +379,8 @@
       "text": {
         "description": "页脚文字",
         "type": "string",
-        "default": "AstrBot · {date} {time}",
-        "hint": "支持 {date}、{time}、{sender}、{platform}、{timezone}、{theme} 等占位符。"
+        "default": "{bot_name}",
+        "hint": "支持 {bot_name}、{bot_id}、{date}、{time}、{sender}、{platform}、{timezone}、{theme} 等占位符；默认显示机器人昵称。"
       },
       "show_text": {
         "description": "显示页脚文字",
@@ -529,6 +529,17 @@
         "type": "bool",
         "default": true,
         "hint": "把 $...$、$$...$$、\\(...\\)、\\[...\\] 转为原生 MathML，不依赖外部 MathJax/CDN。"
+      },
+      "image_size": {
+        "description": "正文图片固定边长",
+        "type": "int",
+        "default": 380,
+        "slider": {
+          "min": 180,
+          "max": 640,
+          "step": 10
+        },
+        "hint": "正文图片按长边缩放到该值，保持原宽高比；小图会放大、大图会缩小，不裁切。"
       }
     }
   },

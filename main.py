@@ -35,6 +35,7 @@ try:  # AstrBot loads plugins as packages in normal installations.
     from .card_renderer import CardRenderer, RenderError, RenderOptions
     from .card_template import CardData, CardOptions, build_card_html
     from .card_theme import accent_for, palette_for, resolve_theme
+    from .page_web import PageWebUI
 except ImportError:  # Support direct ``python main.py`` style repositories.
     _PLUGIN_DIR = str(Path(__file__).resolve().parent)
     if _PLUGIN_DIR not in sys.path:
@@ -44,6 +45,7 @@ except ImportError:  # Support direct ``python main.py`` style repositories.
     from card_renderer import CardRenderer, RenderError, RenderOptions
     from card_template import CardData, CardOptions, build_card_html
     from card_theme import accent_for, palette_for, resolve_theme
+    from page_web import PageWebUI
 
 from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, filter
@@ -174,16 +176,16 @@ class _Settings:
     accent_light: str = ""
     accent_dark: str = ""
 
-    width: int = 920
-    radius: int = 28
-    font_size: float = 17.0
-    line_height: float = 1.78
+    width: int = 720
+    radius: int = 26
+    font_size: float = 28.0
+    line_height: float = 1.72
     custom_css: str = ""
     eyebrow: str = "MESSAGE CARD"
     show_meta: bool = True
     header_title: str = "消息卡片"
     header_subtitle: str = ""
-    footer_text: str = "AstrBot · {date} {time}"
+    footer_text: str = "{bot_name}"
 
     header_enabled: bool = True
     header_source: str = "theme"
@@ -193,7 +195,7 @@ class _Settings:
     header_api_json_path: str = ""
     header_host_fallback: bool = True
     header_cache_seconds: int = 45
-    header_height: int = 238
+    header_height: int = 280
     header_fit: str = "cover"
     header_position: str = "center"
     header_show_text: bool = True
@@ -206,7 +208,7 @@ class _Settings:
     footer_api_json_path: str = ""
     footer_host_fallback: bool = True
     footer_cache_seconds: int = 45
-    footer_height: int = 148
+    footer_height: int = 160
     footer_fit: str = "cover"
     footer_position: str = "center"
     footer_show_text: bool = True
@@ -227,6 +229,7 @@ class _Settings:
     allow_local_images: bool = False
     max_remote_images: int = 8
     math_enabled: bool = True
+    image_size: int = 380
 
 
 class MessageCardPlugin(Star):
@@ -240,6 +243,10 @@ class MessageCardPlugin(Star):
         self.renders_dir.mkdir(parents=True, exist_ok=True)
         self.assets = AssetResolver(self._asset_config(self._settings()))
         self.renderer = CardRenderer(self._render_options(self._settings()))
+        self.webui = PageWebUI(self)
+        self.webui.register()
+        self._avatar_cache: dict[str, tuple[float, str | None]] = {}
+        self._bot_profile_cache: dict[str, tuple[float, tuple[str, str | None]]] = {}
         self._render_count = 0
         self._failed_count = 0
         self._last_error = ""
@@ -307,18 +314,18 @@ class MessageCardPlugin(Star):
         s.accent_light = _as_str(self._get("theme", "accent_light", ""))
         s.accent_dark = _as_str(self._get("theme", "accent_dark", ""))
 
-        s.width = _as_int(self._get("appearance", "width", 920), 920, 520, 1400)
-        s.radius = _as_int(self._get("appearance", "radius", 28), 28, 0, 48)
-        s.font_size = _as_float(self._get("appearance", "font_size", 17), 17.0, 12.0, 28.0)
-        s.line_height = _as_float(self._get("appearance", "line_height", 1.78), 1.78, 1.2, 2.4)
+        s.width = _as_int(self._get("appearance", "width", 720), 720, 520, 1400)
+        s.radius = _as_int(self._get("appearance", "radius", 26), 26, 0, 48)
+        s.font_size = _as_float(self._get("appearance", "font_size", 28), 28.0, 16.0, 36.0)
+        s.line_height = _as_float(self._get("appearance", "line_height", 1.72), 1.72, 1.2, 2.4)
         s.custom_css = _as_str(self._get("appearance", "custom_css", ""))
         s.eyebrow = _as_str(self._get("appearance", "eyebrow", "MESSAGE CARD"), "MESSAGE CARD")
         s.show_meta = _as_bool(self._get("appearance", "show_meta", True), True)
         s.header_title = _as_str(self._get("header", "title", "消息卡片"), "消息卡片")
         s.header_subtitle = _as_str(self._get("header", "subtitle", ""))
         s.footer_text = _as_str(
-            self._get("footer", "text", "AstrBot · {date} {time}"),
-            "AstrBot · {date} {time}",
+            self._get("footer", "text", "{bot_name}"),
+            "{bot_name}",
         )
 
         s.header_enabled = _as_bool(self._get("header", "enabled", True), True)
@@ -332,7 +339,7 @@ class MessageCardPlugin(Star):
         s.header_api_json_path = _as_str(self._get("header", "api_json_path", ""))
         s.header_host_fallback = _as_bool(self._get("header", "host_fallback", True), True)
         s.header_cache_seconds = _as_int(self._get("header", "cache_seconds", 45), 45, 0, 86400)
-        s.header_height = _as_int(self._get("header", "height", 238), 238, 110, 460)
+        s.header_height = _as_int(self._get("header", "height", 280), 280, 140, 520)
         s.header_fit = _as_str(self._get("header", "fit", "cover"), "cover").lower()
         s.header_position = _as_str(self._get("header", "position", "center"), "center").lower()
         s.header_show_text = _as_bool(self._get("header", "show_text", True), True)
@@ -345,7 +352,7 @@ class MessageCardPlugin(Star):
         s.footer_api_json_path = _as_str(self._get("footer", "api_json_path", ""))
         s.footer_host_fallback = _as_bool(self._get("footer", "host_fallback", True), True)
         s.footer_cache_seconds = _as_int(self._get("footer", "cache_seconds", 45), 45, 0, 86400)
-        s.footer_height = _as_int(self._get("footer", "height", 148), 148, 72, 320)
+        s.footer_height = _as_int(self._get("footer", "height", 160), 160, 90, 360)
         s.footer_fit = _as_str(self._get("footer", "fit", "cover"), "cover").lower()
         s.footer_position = _as_str(self._get("footer", "position", "center"), "center").lower()
         s.footer_show_text = _as_bool(self._get("footer", "show_text", True), True)
@@ -384,6 +391,7 @@ class MessageCardPlugin(Star):
             self._get("content", "max_remote_images", 8), 8, 0, 30
         )
         s.math_enabled = _as_bool(self._get("content", "math", True), True)
+        s.image_size = _as_int(self._get("content", "image_size", 380), 380, 180, 640)
         return s
 
     def _asset_config(self, s: _Settings) -> AssetConfig:
@@ -774,6 +782,8 @@ class MessageCardPlugin(Star):
         *,
         sender: str,
         platform: str,
+        bot_name: str = "机器人",
+        bot_id: str = "",
     ) -> dict[str, Any]:
         return {
             "date": theme.date_text,
@@ -787,8 +797,140 @@ class MessageCardPlugin(Star):
             "sender": sender,
             "platform": platform,
             "message_type": self._message_type_label(event),
-            "bot": "AstrBot",
+            "bot": bot_name,
+            "bot_name": bot_name,
+            "bot_id": bot_id,
         }
+
+    @staticmethod
+    def _sender_avatar_candidate(event: AstrMessageEvent, sender_id: str) -> str:
+        for key in ("sender_avatar", "avatar_url", "avatar", "user_avatar", "member_avatar"):
+            value = event.get_extra(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        message = getattr(event, "message_obj", None)
+        sender = getattr(message, "sender", None)
+        for attr in ("avatar", "avatar_url", "head_img", "headimgurl", "head_url"):
+            value = getattr(sender, attr, None)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        raw = getattr(message, "raw_message", None)
+        if isinstance(raw, dict):
+            for key in ("sender_avatar", "avatar", "avatar_url"):
+                value = raw.get(key)
+                if isinstance(value, str) and value.strip():
+                    return value.strip()
+            sender_raw = raw.get("sender")
+            if isinstance(sender_raw, dict):
+                for key in ("avatar", "avatar_url", "head_img", "headimgurl"):
+                    value = sender_raw.get(key)
+                    if isinstance(value, str) and value.strip():
+                        return value.strip()
+        try:
+            platform = str(event.get_platform_name() or "").lower()
+        except Exception:
+            platform = ""
+        if platform == "aiocqhttp" and str(sender_id).isdigit():
+            # OneBot v11 does not expose an avatar field; this is the official
+            # QQ avatar endpoint and works for regular QQ numbers.
+            return f"https://q1.qlogo.cn/g?b=qq&nk={sender_id}&s=640"
+        return ""
+
+    async def _resolve_avatar(
+        self, event: AstrMessageEvent, sender_id: str, s: _Settings
+    ) -> str | None:
+        if not s.show_meta or not sender_id:
+            return None
+        try:
+            platform = str(event.get_platform_name() or "").lower()
+        except Exception:
+            platform = ""
+        key = f"{platform}:{sender_id}"
+        now = time.monotonic()
+        cached = self._avatar_cache.get(key)
+        if cached and cached[0] > now:
+            return cached[1]
+        url = self._sender_avatar_candidate(event, sender_id)
+        if not url:
+            self._avatar_cache[key] = (now + 600, None)
+            return None
+        try:
+            data_uri = await self.assets.fetch_content_image(
+                url, trusted=True, max_side=160
+            )
+        except Exception as exc:
+            logger.debug("[message_card] 头像获取失败：%s", exc)
+            data_uri = None
+        self._avatar_cache[key] = (now + (3600 if data_uri else 300), data_uri)
+        return data_uri
+
+    async def _resolve_bot_profile(
+        self, event: AstrMessageEvent
+    ) -> tuple[str, str | None]:
+        """Return the bot nickname and avatar.
+
+        OneBot v11 does not include the login profile in the event, so ask the
+        adapter for ``get_login_info``.  The avatar uses the same QQ endpoint as
+        sender avatars.  Both results are cached to keep rendering fast.
+        """
+
+        self_id = ""
+        try:
+            self_id = str(event.get_self_id() or "")
+        except Exception:
+            try:
+                self_id = str(getattr(event.message_obj, "self_id", "") or "")
+            except Exception:
+                self_id = ""
+        try:
+            platform = str(event.get_platform_name() or "").lower()
+        except Exception:
+            platform = ""
+        key = f"{platform}:{self_id}"
+        now = time.monotonic()
+        cached = self._bot_profile_cache.get(key)
+        if cached and cached[0] > now:
+            return cached[1]
+
+        name = ""
+        for extra_key in ("bot_name", "self_name", "login_nickname"):
+            value = event.get_extra(extra_key)
+            if isinstance(value, str) and value.strip():
+                name = value.strip()
+                break
+        bot = getattr(event, "bot", None)
+        if not name and bot is not None and hasattr(bot, "call_action"):
+            try:
+                info = await asyncio.wait_for(
+                    bot.call_action("get_login_info"), timeout=4
+                )
+                if isinstance(info, dict):
+                    name = str(info.get("nickname") or info.get("name") or "").strip()
+                    if info.get("user_id"):
+                        self_id = str(info["user_id"])
+            except Exception as exc:
+                logger.debug("[message_card] 获取机器人昵称失败：%s", exc)
+        name = name or "机器人"
+
+        avatar_url = ""
+        for extra_key in ("bot_avatar", "bot_avatar_url", "self_avatar"):
+            value = event.get_extra(extra_key)
+            if isinstance(value, str) and value.strip():
+                avatar_url = value.strip()
+                break
+        if not avatar_url and platform == "aiocqhttp" and self_id.isdigit():
+            avatar_url = f"https://q1.qlogo.cn/g?b=qq&nk={self_id}&s=640"
+        avatar: str | None = None
+        if avatar_url:
+            try:
+                avatar = await self.assets.fetch_content_image(
+                    avatar_url, trusted=True, max_side=160
+                )
+            except Exception as exc:
+                logger.debug("[message_card] 获取机器人头像失败：%s", exc)
+        result = (name, avatar)
+        self._bot_profile_cache[key] = (now + 3600, result)
+        return result
 
     async def _resolve_frame_images(
         self,
@@ -858,12 +1000,26 @@ class MessageCardPlugin(Star):
         accent = accent_for(theme.mode, s.accent_light if theme.mode == "light" else s.accent_dark)
         palette = palette_for(theme.mode)
         sender = ""
+        sender_id = ""
         try:
             sender = event.get_sender_name() or event.get_sender_id() or ""
+            sender_id = str(event.get_sender_id() or "")
         except Exception:
             sender = ""
+            sender_id = ""
         platform = self._platform_label(event)
-        values = self._template_values(event, theme, sender=str(sender), platform=platform)
+        avatar_image = await self._resolve_avatar(event, sender_id, s)
+        bot_name, bot_avatar = ("机器人", None)
+        if s.footer_enabled:
+            bot_name, bot_avatar = await self._resolve_bot_profile(event)
+        values = self._template_values(
+            event,
+            theme,
+            sender=str(sender),
+            platform=platform,
+            bot_name=bot_name,
+            bot_id=str(event.get_self_id() or ""),
+        )
         header_values = dict(values)
         footer_values = dict(values)
 
@@ -950,6 +1106,7 @@ class MessageCardPlugin(Star):
             show_meta=s.show_meta,
             header_enabled=s.header_enabled,
             footer_enabled=s.footer_enabled,
+            image_box=s.image_size,
             custom_css=s.custom_css,
         )
         card_data = CardData(
@@ -969,6 +1126,9 @@ class MessageCardPlugin(Star):
             timezone=theme.timezone,
             eyebrow=s.eyebrow,
             status_text="ONLINE" if header_image else "CARD",
+            avatar_image=avatar_image,
+            bot_name=bot_name,
+            bot_avatar_image=bot_avatar,
         )
         # Generate Pygments CSS matching the theme.
         html_doc = build_card_html(

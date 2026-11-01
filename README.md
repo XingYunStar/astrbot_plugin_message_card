@@ -41,7 +41,8 @@
 - 🧾 **Markdown 全量排版**：标题、表格、引用、任务列表、脚注、围栏代码 + Pygments 高亮、图片、链接、`details` 等。
 - 🧩 **HTML 片段渲染**：白名单标签/属性 + CSS 安全属性白名单；不执行脚本，不加载外部样式，不引入 iframe。
 - ∑ **LaTeX 原生 MathML**：`$...$`、`$$...$$`、`\(...\)`、`\[...\]` 和常见 `\begin{...}` 环境；无需 MathJax CDN，离线可用。
-- 🖼️ **消息图片进入卡片**：图片组件会转成 data URI 嵌入正文；meme_manager 通过 `on_decorating_result(priority=99999)` 加入的表情包会被本插件（priority=-100）接住。
+- 🖼️ **消息图片进入卡片**：图片组件会转成 data URI 嵌入正文，统一缩放到固定长边 `content.image_size`（默认 380px）并保持原比例；meme_manager 通过 `on_decorating_result(priority=99999)` 加入的表情包会被本插件（priority=-100）接住。
+- 👤 **头像**：发送者区域优先显示 QQ 头像，获取失败回退昵称首字；页脚显示机器人头像和机器人昵称，获取失败回退机器人昵称首字。
 - 🏞️ **页眉/页脚图片**：`theme / local / url / api` 四种来源；支持 `cover/contain`、裁剪焦点、文字开关和独立高度。
 - 🌐 **横屏图片 API**：默认预置 `http://127.0.0.1:8888/image/firefly_cg/?mode=pc`；支持直接返回图片、返回 JSON URL、302 跳转；失败自动回退到主题装饰。
 - 🐳 **Docker 宿主机回退**：当 API 主机是 `127.0.0.1` 且容器内不通时，依次尝试 `host.docker.internal`、Docker 网关、`172.17.0.1`。
@@ -50,6 +51,7 @@
 - 🛡️ **安全默认值**：正文远程图片有 SSRF 防护、大小/像素限制；正文默认不能读本地文件；Chromium 禁用 JS 并阻断所有非 data URI 请求。
 - 🧵 **长图自动切片**：超过 `max_slice_height` 时按视口切片，避免超过 Chromium 位图上限；返回多张图片。
 - 🧹 **自动清理**：生成文件保存在 `data/plugin_data/astrbot_plugin_message_card/renders`，按数量保留最近文件。
+- 🖥️ **插件 WebUI**：在 AstrBot 插件详情页打开「消息卡片设置」，可视化调整卡片标题、字号、图片尺寸、主题、页眉页脚与兼容开关，并一键渲染预览。
 
 ## 📦 安装
 
@@ -107,6 +109,25 @@ python -m playwright install-deps chromium
    $$
    ```
 
+## 🖥️ WebUI 设置页
+
+插件自带一个可视化设置页，不需要手改 JSON：
+
+1. 打开 AstrBot WebUI → **插件** → 消息卡片渲染 → **插件详情**。
+2. 打开 **消息卡片设置** 页面。
+3. 修改后点击「保存配置」，配置立即生效；右侧可以直接渲染预览。
+
+页面包含：
+
+- `header.title`「卡片标题」：把默认的「消息卡片」改成任意文字
+- 正文字号、卡片宽度、图片长边、圆角、行高
+- 昼夜主题、时区、日间区间
+- 页眉/页脚图片源、横屏 API、高度、是否显示文字
+- 分段回复、TTS、转发阈值兼容开关
+- 实时预览和运行状态
+
+> 页面通过 AstrBot 的插件 Pages bridge 读写插件配置；保存后无需重启 AstrBot，下一次渲染即使用新配置。
+
 ## 🎛️ 配置
 
 完整字段、默认值与说明见 [`_conf_schema.json`](_conf_schema.json)，WebUI 会按分组展示。以下是高频项：
@@ -124,18 +145,23 @@ python -m playwright install-deps chromium
 | `theme.timezone` | `Asia/Shanghai` | IANA 时区 |
 | `theme.day_start` | `06:30` | 日间开始（含） |
 | `theme.day_end` | `18:30` | 日间结束（不含） |
-| `appearance.width` | `920` | 卡片宽度（CSS px） |
-| `appearance.font_size` | `17` | 正文字号（CSS px） |
+| `appearance.width` | `720` | 卡片宽度（CSS px），手机端建议 720 |
+| `appearance.font_size` | `28` | 正文字号（CSS px） |
+| `header.title` | `消息卡片` | 页眉大字标题，可完全自定义 |
 | `header.source` | `theme` | `theme` / `local` / `url` / `api` |
+| `header.height` | `280` | 页眉高度（CSS px） |
 | `header.api_url` | `http://127.0.0.1:8888/image/firefly_cg/?mode=pc` | 横屏图片 API |
 | `header.host_fallback` | `true` | 容器访问宿主机的地址回退 |
 | `header.cache_seconds` | `45` | 0 = 每条消息重新取图；随机图可设 0 |
 | `footer.source` | `theme` | 页脚图片源，规则同页眉 |
+| `footer.text` | `{bot_name}` | 页脚主文字，默认机器人昵称 |
+| `footer.height` | `160` | 页脚高度（CSS px） |
 | `render.device_scale_factor` | `2.0` | 2 倍分辨率输出 |
 | `render.max_slice_height` | `7000` | 超过该 CSS 高度自动切片 |
 | `content.input_mode` | `auto` | 自动识别 HTML，否则 Markdown |
 | `content.allow_remote_images` | `true` | 正文远程图片 |
 | `content.allow_private_network_images` | `false` | 正文访问内网（高风险） |
+| `content.image_size` | `380` | 正文图片固定长边（等比例缩放） |
 | `content.allow_local_images` | `false` | 正文读取本地文件（高风险） |
 | `compat.preserve_segmented_reply` | `false` | 分段回复会实际拆分时停止转图 |
 | `compat.preserve_tts` | `false` | 转图后同时生成语音 |
@@ -143,7 +169,7 @@ python -m playwright install-deps chromium
 
 ### 占位符
 
-页眉标题/副标题、页脚文字、页眉页脚的 `path` / `url` 支持：
+页眉标题/副标题、页脚文字、页眉页脚的 `path` / `url` / `api_url` 支持：
 
 | 占位符 | 值 |
 | --- | --- |
@@ -154,6 +180,8 @@ python -m playwright install-deps chromium
 | `{sender}` | 发送者昵称 |
 | `{platform}` | 平台标签，如 `QQ` |
 | `{theme}` | `日间模式` / `夜间模式` |
+| `{bot_name}` | 机器人昵称（页脚默认使用） |
+| `{bot_id}` | 机器人账号 ID |
 | `{weekday}` | 星期几 |
 
 ### 主题区间
@@ -182,6 +210,25 @@ python -m playwright install-deps chromium
 3. 保留默认 `127.0.0.1` 并开启 `header.host_fallback`，插件会尝试 `host.docker.internal`、Docker 默认网关、`172.17.0.1`。
 
 > 回退是 best-effort：如果容器的网关不是宿主机、或宿主防火墙未放行 8888，仍需用局域网 IP / host-gateway。日志会打印一次失败原因，之后 90 秒内不再重复尝试失败接口。
+
+### 宿主机 API 只监听 127.0.0.1 时
+
+如果图片服务只绑定在宿主机 `127.0.0.1:8888`，Docker 容器无法通过 bridge 直接访问。可以在宿主机上用 host network 跑一个反向代理（示例：[`tools/host_api_proxy.py`](tools/host_api_proxy.py)），把 `0.0.0.0:8890` 转发到 `127.0.0.1:8888`，然后把插件配置改为：
+
+```text
+header.source = api
+header.api_url = http://172.17.0.1:8890/image/firefly_cg/?mode=pc
+```
+
+示例：
+
+```bash
+docker run -d --name astrbot-image-proxy --restart unless-stopped --network host \
+  -v "$PWD/tools/host_api_proxy.py:/api_proxy.py:ro" \
+  --entrypoint python <任意带 python 的镜像> /api_proxy.py
+```
+
+`172.17.0.1` 是 Docker 默认 bridge 网关；如果容器在自定义网络，使用 `docker network inspect <网络名>` 中的 Gateway 地址。
 
 ## ⌨️ 指令
 
@@ -353,7 +400,11 @@ astrbot_plugin_message_card/
 ├── card_theme.py           # 时区/昼夜区间与调色板
 ├── card_template.py        # 卡片 HTML/CSS
 ├── card_assets.py          # 图片获取、API、SSRF、压缩
-├── card_renderer.py        # Playwright/Chromium、长图切片
+├── card_renderer.py        # Playwright/Chromium、长图切片、图片长边统一
+├── page_web.py             # WebUI 设置页后端 API
+├── tools/host_api_proxy.py  # 宿主机 loopback API 的 host-network 代理示例
+├── pages/settings/         # WebUI 设置页（HTML/CSS/JS）
+├── .astrbot-plugin/i18n/   # 页面标题与插件文案
 ├── _conf_schema.json       # WebUI 配置
 ├── metadata.yaml
 ├── requirements.txt

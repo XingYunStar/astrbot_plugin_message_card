@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>消息卡片设置</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">MESSAGE CARD</div>
+        <h1>消息卡片渲染</h1>
+        <p>调整字号、图片、主题、页眉页脚与兼容开关。保存后立即生效，无需重启 AstrBot。</p>
+      </div>
+      <div class="hero-status" id="statusChip">
+        <span class="dot"></span>
+        <span id="statusText">正在读取状态…</span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <main class="form-column">
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>基础</h2>
+              <p>控制哪些消息会自动转成图片。</p>
+            </div>
+          </div>
+          <div class="switch-row">
+            <label class="switch">
+              <input type="checkbox" data-path="enabled" />
+              <span class="switch-track"></span>
+              <span>启用消息卡片</span>
+            </label>
+            <label class="switch">
+              <input type="checkbox" data-path="trigger.skip_streaming" />
+              <span class="switch-track"></span>
+              <span>跳过流式输出</span>
+            </label>
+            <label class="switch">
+              <input type="checkbox" data-path="trigger.render_image_only" />
+              <span class="switch-track"></span>
+              <span>纯图片消息也转卡片</span>
+            </label>
+            <label class="switch">
+              <input type="checkbox" data-path="trigger.include_meme_manager_pending" />
+              <span class="switch-track"></span>
+              <span>并入 meme_manager 待发表情</span>
+            </label>
+          </div>
+          <div class="field-grid">
+            <label class="field">
+              <span>触发范围</span>
+              <select data-path="trigger.mode">
+                <option value="llm">仅 LLM 回复</option>
+                <option value="all">所有发送结果</option>
+                <option value="command">只允许 /render</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>最短自动渲染字数</span>
+              <input type="number" min="0" max="10000" step="1" data-path="trigger.min_chars" />
+            </label>
+            <label class="field">
+              <span>跳过的平台</span>
+              <input type="text" data-path="trigger.skip_platforms" placeholder="例如 aiocqhttp,telegram" />
+            </label>
+            <label class="field">
+              <span>正文图片长边（CSS px）</span>
+              <input type="number" min="180" max="640" step="10" data-path="content.image_size" />
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>卡片外观</h2>
+              <p>默认 720px 宽、28px 正文字号，手机端不用放大也能读清。</p>
+            </div>
+          </div>
+          <div class="field-grid">
+            <label class="field">
+              <span>卡片标题</span>
+              <input type="text" data-path="header.title" placeholder="消息卡片" />
+              <small>页眉大字，可自定义。留空使用“消息卡片”。</small>
+            </label>
+            <label class="field">
+              <span>页眉小标题</span>
+              <input type="text" data-path="appearance.eyebrow" placeholder="MESSAGE CARD" />
+            </label>
+            <label class="field">
+              <span>卡片宽度</span>
+              <input type="number" min="520" max="1400" step="20" data-path="appearance.width" />
+            </label>
+            <label class="field">
+              <span>正文字号</span>
+              <input type="number" min="16" max="36" step="1" data-path="appearance.font_size" />
+            </label>
+            <label class="field">
+              <span>圆角</span>
+              <input type="number" min="0" max="48" step="2" data-path="appearance.radius" />
+            </label>
+            <label class="field">
+              <span>行高</span>
+              <input type="number" min="1.2" max="2.4" step="0.02" data-path="appearance.line_height" />
+            </label>
+            <label class="field">
+              <span>页脚文字</span>
+              <input type="text" data-path="footer.text" placeholder="{bot_name}" />
+              <small>默认显示机器人昵称；支持 {bot_name}、{date}、{time} 等占位符。</small>
+            </label>
+            <label class="switch">
+              <input type="checkbox" data-path="appearance.show_meta" />
+              <span class="switch-track"></span>
+              <span>显示发送者信息</span>
+            </label>
+          </div>
+          <label class="field full">
+            <span>自定义 CSS</span>
+            <textarea rows="3" data-path="appearance.custom_css" placeholder=".content { ... }"></textarea>
+            <small>追加到内置样式后；避免使用外部资源。</small>
+          </label>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>昼夜主题</h2>
+              <p>按 IANA 时区和日间区间自动切换；图片不会改变主题。</p>
+            </div>
+          </div>
+          <div class="field-grid">
+            <label class="field">
+              <span>主题模式</span>
+              <select data-path="theme.mode">
+                <option value="auto">自动</option>
+                <option value="light">强制日间</option>
+                <option value="dark">强制夜间</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>时区</span>
+              <input type="text" data-path="theme.timezone" placeholder="Asia/Shanghai" />
+            </label>
+            <label class="field">
+              <span>日间开始</span>
+              <input type="text" data-path="theme.day_start" placeholder="06:30" />
+            </label>
+            <label class="field">
+              <span>日间结束</span>
+              <input type="text" data-path="theme.day_end" placeholder="18:30" />
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>页眉图片</h2>
+              <p>横屏图片 API 会按配置缓存并自动回退到渐变主题。</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" data-path="header.enabled" />
+              <span class="switch-track"></span>
+              <span>启用</span>
+            </label>
+          </div>
+          <div class="field-grid">
+            <label class="field">
+              <span>图片源</span>
+              <select data-path="header.source">
+                <option value="theme">主题渐变</option>
+                <option value="local">本地文件</option>
+                <option value="url">固定 URL</option>
+                <option value="api">图片 API</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>页眉高度</span>
+              <input type="number" min="140" max="520" step="2" data-path="header.height" />
+            </label>
+            <label class="field wide">
+              <span>图片 API 地址</span>
+              <input type="url" data-path="header.api_url" placeholder="http://172.17.0.1:8890/image/firefly_cg/?mode=pc" />
+            </label>
+            <label class="field wide">
+              <span>本地路径 / 固定 URL</span>
+              <input type="text" data-path="header.path" placeholder="本地：docs/banner-day.jpg" />
+              <input type="url" data-path="header.url" placeholder="固定 URL：https://…" />
+            </label>
+            <label class="field">
+              <span>填充方式</span>
+              <select data-path="header.fit">
+                <option value="cover">cover 裁切铺满</option>
+                <option value="contain">contain 完整显示</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>页眉副标题</span>
+              <input type="text" data-path="header.subtitle" placeholder="留空自动使用日期 · 时间 · 时区" />
+            </label>
+            <label class="switch">
+              <input type="checkbox" data-path="header.show_text" />
+              <span class="switch-track"></span>
+              <span>页眉显示文字</span>
+            </label>
+            <label class="switch">
+              <input type="checkbox" data-path="header.host_fallback" />
+              <span class="switch-track"></span>
+              <span>容器访问宿主机回退</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>页脚图片</h2>
+              <p>页脚默认显示机器人昵称和头像；图片源可以单独设置。</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" data-path="footer.enabled" />
+              <span class="switch-track"></span>
+              <span>启用</span>
+            </label>
+          </div>
+          <div class="field-grid">
+            <label class="field">
+              <span>图片源</span>
+              <select data-path="footer.source">
+                <option value="theme">主题纯色</option>
+                <option value="local">本地文件</option>
+                <option value="url">固定 URL</option>
+                <option value="api">图片 API</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>页脚高度</span>
+              <input type="number" min="90" max="360" step="2" data-path="footer.height" />
+            </label>
+            <label class="field wide">
+              <span>页脚图片 API（可选）</span>
+              <input type="url" data-path="footer.api_url" placeholder="http://…" />
+            </label>
+            <label class="field wide">
+              <span>本地路径 / 固定 URL</span>
+              <input type="text" data-path="footer.path" placeholder="本地：docs/banner-footer.jpg" />
+              <input type="url" data-path="footer.url" placeholder="固定 URL：https://…" />
+            </label>
+            <label class="switch">
+              <input type="checkbox" data-path="footer.show_text" />
+              <span class="switch-track"></span>
+              <span>页脚显示文字</span>
+            </label>
+            <label class="switch">
+              <input type="checkbox" data-path="footer.host_fallback" />
+              <span class="switch-track"></span>
+              <span>容器访问宿主机回退</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>内容与安全</h2>
+              <p>控制 HTML/Markdown 识别、公式、正文图片和远程图片策略。</p>
+            </div>
+          </div>
+          <div class="field-grid">
+            <label class="field">
+              <span>输入格式</span>
+              <select data-path="content.input_mode">
+                <option value="auto">自动识别</option>
+                <option value="markdown">Markdown</option>
+                <option value="html">HTML</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>正文远程图片上限</span>
+              <input type="number" min="0" max="30" step="1" data-path="content.max_remote_images" />
+            </label>
+            <label class="switch">
+              <input type="checkbox" data-path="content.math" />
+              <span class="switch-track"></span>
+              <span>启用 LaTeX 公式</span>
+            </label>
+            <label class="switch">
+              <input type="checkbox" data-path="content.allow_remote_images" />
+              <span class="switch-track"></span>
+              <span>允许正文远程图片</span>
+            </label>
+            <label class="switch">
+              <input type="checkbox" data-path="content.allow_private_network_images" />
+              <span class="switch-track"></span>
+              <span>允许正文访问内网（高风险）</span>
+            </label>
+            <label class="switch">
+              <input type="checkbox" data-path="content.allow_local_images" />
+              <span class="switch-track"></span>
+              <span>允许正文读本地文件（高风险）</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>与 AstrBot 内置功能共存</h2>
+              <p>插件先于核心分段/TTS/转发执行；这些开关可以保留原生行为。</p>
+            </div>
+          </div>
+          <div class="switch-row">
+            <label class="switch">
+              <input type="checkbox" data-path="compat.preserve_segmented_reply" />
+              <span class="switch-track"></span>
+              <span>保留分段回复（会拆分时停止转图）</span>
+            </label>
+            <label class="switch">
+              <input type="checkbox" data-path="compat.preserve_tts" />
+              <span class="switch-track"></span>
+              <span>保留 TTS（图片 + 语音）</span>
+            </label>
+            <label class="switch">
+              <input type="checkbox" data-path="compat.preserve_forward_threshold" />
+              <span class="switch-track"></span>
+              <span>保留转发字数阈值（超过时停止转图）</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>渲染设置</h2>
+              <p>浏览器路径留空时自动探测系统 Chromium 或 Playwright 自带浏览器。</p>
+            </div>
+          </div>
+          <div class="field-grid">
+            <label class="field">
+              <span>输出格式</span>
+              <select data-path="render.format">
+                <option value="png">PNG</option>
+                <option value="jpeg">JPEG</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>清晰度倍率</span>
+              <input type="number" min="1" max="3" step="0.5" data-path="render.device_scale_factor" />
+            </label>
+            <label class="field">
+              <span>长图切片高度</span>
+              <input type="number" min="1200" max="15000" step="500" data-path="render.max_slice_height" />
+            </label>
+            <label class="field wide">
+              <span>Chromium 路径</span>
+              <input type="text" data-path="render.browser_path" placeholder="/usr/bin/chromium" />
+            </label>
+          </div>
+        </section>
+
+        <div class="save-bar">
+          <span id="saveHint">修改后点击保存；配置会立即生效。</span>
+          <button class="button primary" id="saveButton" type="button">保存配置</button>
+        </div>
+      </main>
+
+      <aside class="preview-column">
+        <div class="preview-card">
+          <div class="preview-heading">
+            <div>
+              <h2>实时预览</h2>
+              <p>使用当前配置渲染一张示例卡片。</p>
+            </div>
+            <button class="button" id="previewButton" type="button">重新渲染</button>
+          </div>
+          <div class="preview-frame" id="previewFrame">
+            <div class="preview-placeholder" id="previewPlaceholder">
+              <div class="spinner"></div>
+              <span>点击“重新渲染”查看效果</span>
+            </div>
+            <img id="previewImage" alt="消息卡片预览" />
+          </div>
+          <label class="field full">
+            <span>预览内容</span>
+            <textarea id="previewText" rows="6"># 消息卡片预览
+
+这是 **Markdown** 预览：标题、列表、表格和 LaTeX 都会进入同一张卡片。
+
+- 字号更大，手机端直接阅读
+- 正文图片统一缩放到固定长边
+- 页脚显示机器人昵称和头像
+
+| 能力 | 状态 |
+| --- | --- |
+| HTML / Markdown | 支持 |
+| LaTeX / MathML | 支持 |
+| 图片 | 支持 |
+
+$$\\int_0^\\infty e^{-x^2}\\,dx=\\frac{\\sqrt{\\pi}}{2}$$
+</textarea>
+          </label>
+        </div>
+
+        <div class="status-card">
+          <h2>运行状态</h2>
+          <dl id="statusList"></dl>
+          <p class="muted">保存配置不会重启 AstrBot；修改插件文件或依赖后才需要重载插件。</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

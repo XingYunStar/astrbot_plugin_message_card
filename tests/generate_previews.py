@@ -108,7 +108,8 @@ async def build_preview(
             footer_image=footer_uri,
             header_title=title,
             header_subtitle=subtitle,
-            footer_text="AstrBot · 消息卡片渲染",
+            footer_text="星穹助手",
+            bot_name="星穹助手",
             sender="星陨",
             platform="QQ",
             time_text="22:00" if mode == "dark" else "13:30",
@@ -118,12 +119,12 @@ async def build_preview(
         )
         html = build_card_html(
             data,
-            CardOptions(width=920, font_size=17, accent=accent_for(mode, "")),
+            CardOptions(width=720, font_size=28, accent=accent_for(mode, "")),
             pygments_css=pygments_css(mode),
         )
         renderer = CardRenderer(
             RenderOptions(
-                width=920,
+                width=720,
                 device_scale_factor=2,
                 browser_path="/usr/bin/chromium",
                 timeout=60,

@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "display_name": "消息卡片渲染",
+    "desc": "把消息渲染成带昼夜主题、机器人页脚、页眉图片 API 与 LaTeX 的卡片图片。"
+  },
+  "pages": {
+    "settings": {
+      "title": "消息卡片设置",
+      "description": "调整字号、图片、主题、页眉页脚与兼容开关，并实时预览。"
+    }
+  }
+}
