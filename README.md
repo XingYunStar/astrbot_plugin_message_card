@@ -41,7 +41,7 @@
 - 🧾 **Markdown 全量排版**：标题、表格、引用、任务列表、脚注、围栏代码 + Pygments 高亮、图片、链接、`details` 等。
 - 🧩 **HTML 片段渲染**：白名单标签/属性 + CSS 安全属性白名单；不执行脚本，不加载外部样式，不引入 iframe。
 - ∑ **LaTeX 原生 MathML**：`$...$`、`$$...$$`、`\(...\)`、`\[...\]` 和常见 `\begin{...}` 环境；无需 MathJax CDN，离线可用。
-- 🖼️ **消息图片进入卡片**：图片组件会转成 data URI 嵌入正文，统一缩放到固定长边 `content.image_size`（默认 380px）并保持原比例；meme_manager 通过 `on_decorating_result(priority=99999)` 加入的表情包会被本插件（priority=-100）接住。
+- 🖼️ **消息图片进入卡片**：图片组件会转成 data URI 嵌入正文，统一缩放到固定长边 `content.image_size`（默认 380px）并保持原比例；[meme_manager](https://github.com/anka-afk/astrbot_plugin_meme_manager) 通过 `on_decorating_result(priority=99999)` 加入的表情包会被本插件（priority=-100）接住。
 - 👤 **头像**：发送者区域优先显示 QQ 头像，获取失败回退昵称首字；页脚显示机器人头像和机器人昵称，获取失败回退机器人昵称首字。
 - 🏞️ **页眉/页脚图片**：`theme / local / url / api` 四种来源；支持 `cover/contain`、裁剪焦点、文字开关和独立高度。
 - 🌐 **横屏图片 API**：可配置任意横屏接口，例如 `https://api.cnmiw.com/api.php?sort=CDNpc`；支持直接返回图片、返回 JSON URL、302 跳转；失败自动回退到主题装饰。
@@ -99,7 +99,7 @@ python -m playwright install-deps chromium
    ```
    https://api.cnmiw.com/api.php?sort=CDNpc
    ```
-   如果 API 是宿主机本地服务，Docker 场景请按下方「Docker 与 127.0.0.1」处理。
+   如果 API 是宿主机本地服务，Docker 场景请按下方「[Docker 与 127.0.0.1](https://github.com/XingYunStar/astrbot_plugin_message_card#docker-与-127001)」处理。
 4. 发送一段较长的 Markdown/LaTeX 测试，或直接：
 
    ```text
@@ -140,7 +140,7 @@ python -m playwright install-deps chromium
 | `trigger.render_when_rich` | `true` | 短但含 Markdown/公式/HTML/图片也渲染 |
 | `trigger.skip_streaming` | `true` | 跳过流式，避免重复发图 |
 | `trigger.render_image_only` | `false` | 只有表情包/图片的消息是否也套卡片 |
-| `trigger.include_meme_manager_pending` | `true` | 将 meme_manager 待发表的单独表情并入卡片 |
+| `trigger.include_meme_manager_pending` | `true` | 将 [meme_manager](https://github.com/anka-afk/astrbot_plugin_meme_manager) 待发表的单独表情并入卡片 |
 | `theme.mode` | `auto` | `auto` / `light` / `dark` |
 | `theme.timezone` | `Asia/Shanghai` | IANA 时区 |
 | `theme.day_start` | `06:30` | 日间开始（含） |
@@ -264,14 +264,14 @@ docker run -d --name astrbot-image-proxy --restart unless-stopped --network host
 - 不允许正文访问内网/本机图片（默认）；页眉/页脚 API 属于管理员配置，允许私网。
 - 不拦截其他插件绕过事件结果、直接通过 `context.send_message` 发出的消息。
 
-### 与 meme_manager 的配合
+### 与 [meme_manager](https://github.com/anka-afk/astrbot_plugin_meme_manager) 的配合
 
-meme_manager 在 `on_decorating_result(priority=99999)` 把选中的表情包混入消息链，本插件在 `priority=-100` 更晚执行，因此：
+[meme_manager](https://github.com/anka-afk/astrbot_plugin_meme_manager) 在 `on_decorating_result(priority=99999)` 把选中的表情包混入消息链，本插件在 `priority=-100` 更晚执行，因此：
 
 - ✅ 混合发送（文字 + 表情）时，表情会进入卡片。
-- ✅ meme_manager 的“非混合”模式会把表情放进 `meme_manager_pending_images`，计划在 `after_message_sent` 再发。本插件默认读取这个列表，把它们并入卡片，并在成功渲染后清空，避免重复发送。
-- ⚠️ 如果关闭 `trigger.include_meme_manager_pending`，或者 meme_manager 使用 `context.send_message` 绕过事件 extras 直接发送，表情仍会作为独立图片发出，不会进入卡片。
-- 该集成是对 meme_manager 当前事件字段的兼容读取；字段不存在时完全无副作用。
+- ✅ [meme_manager](https://github.com/anka-afk/astrbot_plugin_meme_manager) 的“非混合”模式会把表情放进 `meme_manager_pending_images`，计划在 `after_message_sent` 再发。本插件默认读取这个列表，把它们并入卡片，并在成功渲染后清空，避免重复发送。
+- ⚠️ 如果关闭 `trigger.include_meme_manager_pending`，或者 [meme_manager](https://github.com/anka-afk/astrbot_plugin_meme_manager) 使用 `context.send_message` 绕过事件 extras 直接发送，表情仍会作为独立图片发出，不会进入卡片。
+- 该集成是对 [meme_manager](https://github.com/anka-afk/astrbot_plugin_meme_manager) 当前事件字段的兼容读取；字段不存在时完全无副作用。
 
 ## 🧩 与 AstrBot 内置功能共存
 

@@ -243,6 +243,9 @@ input:focus, select:focus, textarea:focus {
 .status-card dt { color: var(--muted); }
 .status-card dd { margin: 0; overflow-wrap: anywhere; }
 .muted { color: var(--muted); font-size: 11px; margin: 14px 0 0; }
+.inline-note { margin: 10px 0 0; color: var(--muted); font-size: 11px; }
+.inline-link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.inline-link:hover { color: var(--accent-2); }
 .toast {
   position: fixed;
   left: 50%;

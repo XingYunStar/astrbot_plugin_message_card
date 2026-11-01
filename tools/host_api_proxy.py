@@ -1,7 +1,7 @@
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import http.client
 import sys
 import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 UPSTREAM = ("127.0.0.1", 8888)
 LISTEN = ("0.0.0.0", 8890)
